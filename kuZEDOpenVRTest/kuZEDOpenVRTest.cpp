@@ -108,27 +108,26 @@ void main()
 
 	double deltaT, lastFrameT = 0.0f;
 
-	GLuint leftFramebuffer = 0;
-	glGenFramebuffers(1, &leftFramebuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, leftFramebuffer);
+	GLuint contentFrameBuffer[2];
+	GLuint contentTexture[2];
 
-	// ID of the texture where to render to
-	GLuint renderedTexture;
-	glGenTextures(1, &renderedTexture);
+	glGenFramebuffers(numEyes, contentFrameBuffer);
+	glGenTextures(numEyes, contentTexture);
 
-	glBindTexture(GL_TEXTURE_2D, renderedTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ZEDImgWidth, ZEDImgHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+	for (int eye = 0; eye < numEyes; eye++)
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, contentFrameBuffer[eye]);
 
-	// Poor filtering
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glBindTexture(GL_TEXTURE_2D, contentTexture[eye]);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ZEDImgWidth, ZEDImgHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
 
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexture, 0);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-	GLenum DrawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
-	glDrawBuffers(1, DrawBuffers);
+		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, contentTexture[eye], 0);
+	}
 
 #pragma region // Set texture quad //
 	static const GLfloat leftQuadVertices[] = {
@@ -177,20 +176,24 @@ void main()
 		vr::TrackedDevicePose_t trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 		vr::VRCompositor()->WaitGetPoses(trackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);			// Can be replaced by GetDeviceToAbsoluteTrackingPose(?)
 
-		#pragma region // Render camera frame to texture //
-		//DrawBGImage(camFrameCVBGR[0], Tex2DShaderHandler);
-		glBindFramebuffer(GL_FRAMEBUFFER, leftFramebuffer);
-		glViewport(0, 0, ZEDImgWidth, ZEDImgHeight);
-
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		
 		ZEDCam.grab(rtParams);
 		ZEDCam.retrieveImage(camFrameZED[0], sl::VIEW_LEFT, sl::MEM_CPU);
-		cv::cvtColor(camFrameCVRGBA[0], camFrameCVBGR[0], CV_RGBA2BGR);
-		cv::flip(camFrameCVBGR[0], camFrameCVBGR[0], 0);
-		//cv::imshow("Test", camFrameCVBGR[0]);
-		DrawBGImage(camFrameCVBGR[0], Tex2DShaderHandler);
+		ZEDCam.retrieveImage(camFrameZED[1], sl::VIEW_RIGHT, sl::MEM_CPU);
+
+		#pragma region // Render camera frame to texture //
+		for (int eye = 0; eye < numEyes; eye++)
+		{
+			glBindFramebuffer(GL_FRAMEBUFFER, contentFrameBuffer[eye]);
+			glViewport(0, 0, ZEDImgWidth, ZEDImgHeight);
+
+			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+			cv::cvtColor(camFrameCVRGBA[eye], camFrameCVBGR[eye], CV_RGBA2BGR);
+			cv::flip(camFrameCVBGR[eye], camFrameCVBGR[eye], 0);
+			//cv::imshow("Test", camFrameCVBGR[0]);
+			DrawBGImage(camFrameCVBGR[eye], Tex2DShaderHandler);
+		}
 
 		glEnable(GL_DEPTH_TEST);
 		glDepthMask(GL_TRUE);
@@ -198,7 +201,7 @@ void main()
 
 		for (int eye = 0; eye < numEyes; ++eye)
 		{
-			glBindFramebuffer(GL_FRAMEBUFFER, FrameBufferID[0]);
+			glBindFramebuffer(GL_FRAMEBUFFER, FrameBufferID[eye]);
 			glViewport(0, 0, frameBufferWidth, frameBufferHeight);
 
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -208,7 +211,7 @@ void main()
 
 			Tex2DShaderHandler.Use();
 
-			glBindTexture(GL_TEXTURE_2D, renderedTexture);
+			glBindTexture(GL_TEXTURE_2D, contentTexture[eye]);
 			glBindVertexArray(quadVertexArray);
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 			glBindVertexArray(0);
