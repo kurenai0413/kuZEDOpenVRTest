@@ -18,5 +18,13 @@
     <ClCompile Include="kuZEDOpenVRTest.cpp">
       <Filter>原始程式檔</Filter>
     </ClCompile>
+    <ClCompile Include="kuShaderHandler.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="kuShaderHandler.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

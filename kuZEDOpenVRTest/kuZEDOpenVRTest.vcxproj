@@ -114,7 +114,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="kuShaderHandler.cpp" />
     <ClCompile Include="kuZEDOpenVRTest.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="kuShaderHandler.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
