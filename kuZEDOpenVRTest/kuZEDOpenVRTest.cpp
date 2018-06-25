@@ -28,10 +28,12 @@ vr::IVRSystem	*	kuOpenVRInit(uint32_t &hmdWidth, uint32_t &hmdHeight);
 GLFWwindow		*	kuOpenGLInit(int width, int height, const std::string& title, GLFWkeyfun cbfun);
 sl::ERROR_CODE		kuZEDInit(sl::Camera &zedCam, sl::InitParameters initParams, sl::RuntimeParameters rtParams, sl::Mat &imgZEDLeft, sl::Mat &imgZEDRight, cv::Mat &imgCVLeft, cv::Mat &imgCVRight);
 
+#pragma region // Camera parameters related functions
 void				SetIntrinsicParams(sl::Camera &zedCam, cv::Mat &intrinsicParamsLeft, cv::Mat &intrinsicParamsRight, cv::Mat  &distParamsLeft, cv::Mat &distParamsRight, GLfloat intrinsicMatGL[2][16]);
 void				SetIntrinsicMatCV(sl::CameraParameters camCalibParams, cv::Mat &intrinsicParams, cv::Mat &distPrams);
 void				IntrinsicCVtoGL(cv::Mat IntParam, GLfloat GLProjection[16]);
 void				ExtrinsicCVtoGL(cv::Mat RotMat, cv::Mat TransVec, GLfloat GLModelView[16]);
+#pragma endregion
 
 void				DrawBGImage(cv::Mat BGImg, kuShaderHandler BGShader);
 GLuint				CreateTexturebyImage(cv::Mat Img);
@@ -40,6 +42,8 @@ std::string			getHMDString(vr::IVRSystem * pHmd, vr::TrackedDeviceIndex_t unDevi
 cv::Mat				MatSL2CV(sl::Mat& input);
 
 void				key_callback(GLFWwindow * window, int key, int scancode, int action, int mode);
+
+void				SetQuadVertexArrayGL(GLuint vertexArrayID, GLuint vertexBufferID, GLuint elementBufferID, const GLfloat * vertexArrayPts);
 
 #pragma region // Camera parameters OpenGL //
 GLfloat						IntrinsicProjMatGL[2][16];
@@ -54,7 +58,7 @@ void main()
 
 	vr::IVRSystem	*	hmd	   = kuOpenVRInit(frameBufferWidth, frameBufferHeight);
 	const int windowHeight = 720;
-	const int windowWidth = (frameBufferWidth * windowHeight) / frameBufferHeight;
+	const int windowWidth  = (frameBufferWidth * windowHeight) / frameBufferHeight;
 	GLFWwindow		*	window = kuOpenGLInit(windowWidth, windowHeight, "kuOpenGLVRTest", key_callback);
 	Tex2DShaderHandler.Load("BGImgVertexShader.vert", "BGImgFragmentShader.frag");
 
@@ -137,32 +141,46 @@ void main()
 		-0.59f,  0.334f, 0.0f, 0.0f
 	};
 
-	GLuint indices[] = { 0, 1, 3,
-		1, 2, 3 };
+	static const GLfloat rightQuadVertices[] = {
+		  0.59f,  0.334f, 1.0f, 0.0f,
+		  0.59f, -0.334f, 1.0f, 1.0f,
+		-0.709f, -0.334f, 0.0f, 1.0f,
+		-0.709f,  0.334f, 0.0f, 0.0f
+	};
 
-	GLuint quadVertexArray = 0;
-	GLuint quadVertexBuffer = 0;
-	GLuint quadElementBuffer = 0;
+	GLuint quadVertexArrayID[2];
+	GLuint quadVertexBufferID[2];
+	GLuint quadElementBufferID[2];
 
-	glGenVertexArrays(1, &quadVertexArray);
-	glBindVertexArray(quadVertexArray);
-	glGenBuffers(1, &quadVertexBuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, quadVertexBuffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(leftQuadVertices), leftQuadVertices, GL_STATIC_DRAW);
-	glGenBuffers(1, &quadElementBuffer);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quadElementBuffer);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+	glGenVertexArrays(2, quadVertexArrayID);
+	glGenBuffers(2, quadVertexBufferID);
+	glGenBuffers(2, quadElementBufferID);
+	SetQuadVertexArrayGL(quadVertexArrayID[0], quadVertexBufferID[0], quadElementBufferID[0], leftQuadVertices);
+	SetQuadVertexArrayGL(quadVertexArrayID[1], quadVertexBufferID[1], quadElementBufferID[1], rightQuadVertices);
 
-	// Assign vertex position data
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
-	glEnableVertexAttribArray(0);
-	// Assign texture coordinates
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)(2 * sizeof(GLfloat)));
-	glEnableVertexAttribArray(1);
+	//GLuint quadVertexArray = 0;
+	//GLuint quadVertexBuffer = 0;
+	//GLuint quadElementBuffer = 0;
 
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	//glGenVertexArrays(1, &quadVertexArray);
+	//glBindVertexArray(quadVertexArray);
+	//glGenBuffers(1, &quadVertexBuffer);
+	//glBindBuffer(GL_ARRAY_BUFFER, quadVertexBuffer);
+	//glBufferData(GL_ARRAY_BUFFER, sizeof(leftQuadVertices), leftQuadVertices, GL_STATIC_DRAW);
+	//glGenBuffers(1, &quadElementBuffer);
+	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quadElementBuffer);
+	////glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+	//// Assign vertex position data
+	//glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
+	//glEnableVertexAttribArray(0);
+	//// Assign texture coordinates
+	//glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)(2 * sizeof(GLfloat)));
+	//glEnableVertexAttribArray(1);
+
+	//glBindBuffer(GL_ARRAY_BUFFER, 0);
+	//glBindVertexArray(0);
+	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 #pragma endregion
 
 	while (!glfwWindowShouldClose(window))
@@ -212,7 +230,7 @@ void main()
 			Tex2DShaderHandler.Use();
 
 			glBindTexture(GL_TEXTURE_2D, contentTexture[eye]);
-			glBindVertexArray(quadVertexArray);
+			glBindVertexArray(quadVertexArrayID[eye]);
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 			glBindVertexArray(0);
 			glBindTexture(GL_TEXTURE_2D, 0);
@@ -396,6 +414,29 @@ void key_callback(GLFWwindow * window, int key, int scancode, int action, int mo
 	{
 	cout << "CameraPos: (" << CameraPos.x << ", " << CameraPos.y << ", " << CameraPos.z << ")" << endl;
 	}*/
+}
+
+void SetQuadVertexArrayGL(GLuint vertexArrayID, GLuint vertexBufferID, GLuint elementBufferID, const GLfloat * vertexArrayPts)
+{
+	GLuint indices[6] = { 0, 1, 3,
+						  1, 2, 3 };
+
+	glBindVertexArray(vertexArrayID);
+	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
+	glBufferData(GL_ARRAY_BUFFER,  16*sizeof(GLfloat)/*sizeof(vertexArrayPts)*/, vertexArrayPts, GL_STATIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferID);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+	// Assign vertex position data
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
+	glEnableVertexAttribArray(0);
+	// Assign texture coordinates
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)(2 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 cv::Mat MatSL2CV(sl::Mat& input)
