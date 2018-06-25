@@ -198,7 +198,7 @@ void main()
 
 		for (int eye = 0; eye < numEyes; ++eye)
 		{
-			glBindFramebuffer(GL_FRAMEBUFFER, FrameBufferID[eye]);
+			glBindFramebuffer(GL_FRAMEBUFFER, FrameBufferID[0]);
 			glViewport(0, 0, frameBufferWidth, frameBufferHeight);
 
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -295,9 +295,9 @@ GLFWwindow* kuOpenGLInit(int width, int height, const std::string& title, GLFWke
 	}
 	glfwMakeContextCurrent(window);
 
-	glfwSetKeyCallback(window, cbfun);
+	//glfwSetKeyCallback(window, cbfun);
 
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	//glfwSetCursorPosCallback(window, mouse_callback);				// 顧名思義...大概只有位置資訊而沒有button事件資訊吧
 
 																	// Start GLEW extension handler, with improved support for new features
