@@ -157,30 +157,6 @@ void main()
 	glGenBuffers(2, quadElementBufferID);
 	SetQuadVertexArrayGL(quadVertexArrayID[0], quadVertexBufferID[0], quadElementBufferID[0], leftQuadVertices);
 	SetQuadVertexArrayGL(quadVertexArrayID[1], quadVertexBufferID[1], quadElementBufferID[1], rightQuadVertices);
-
-	//GLuint quadVertexArray = 0;
-	//GLuint quadVertexBuffer = 0;
-	//GLuint quadElementBuffer = 0;
-
-	//glGenVertexArrays(1, &quadVertexArray);
-	//glBindVertexArray(quadVertexArray);
-	//glGenBuffers(1, &quadVertexBuffer);
-	//glBindBuffer(GL_ARRAY_BUFFER, quadVertexBuffer);
-	//glBufferData(GL_ARRAY_BUFFER, sizeof(leftQuadVertices), leftQuadVertices, GL_STATIC_DRAW);
-	//glGenBuffers(1, &quadElementBuffer);
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quadElementBuffer);
-	////glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-	//// Assign vertex position data
-	//glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
-	//glEnableVertexAttribArray(0);
-	//// Assign texture coordinates
-	//glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)(2 * sizeof(GLfloat)));
-	//glEnableVertexAttribArray(1);
-
-	//glBindBuffer(GL_ARRAY_BUFFER, 0);
-	//glBindVertexArray(0);
-	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 #pragma endregion
 
 	while (!glfwWindowShouldClose(window))
