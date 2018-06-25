@@ -131,11 +131,11 @@ void main()
 	glDrawBuffers(1, DrawBuffers);
 
 #pragma region // Set texture quad //
-	static const GLfloat quadVertices[] = {
-		0.5f,  0.5f, 1.0f, 0.0f,				// <= 這邊是比例，UV是相對於視窗的座標，不是絕對座標
-		0.5f, -0.5f, 1.0f, 1.0f,
-		-0.5f, -0.5f, 0.0f, 1.0f,
-		-0.5f,  0.5f, 0.0f, 0.0f
+	static const GLfloat leftQuadVertices[] = {
+		0.709f,  0.334f, 1.0f, 0.0f,				// <= 這邊是比例，UV是相對於視窗的座標，不是絕對座標
+		0.709f, -0.334f, 1.0f, 1.0f,
+		-0.59f, -0.334f, 0.0f, 1.0f,
+		-0.59f,  0.334f, 0.0f, 0.0f
 	};
 
 	GLuint indices[] = { 0, 1, 3,
@@ -149,7 +149,7 @@ void main()
 	glBindVertexArray(quadVertexArray);
 	glGenBuffers(1, &quadVertexBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, quadVertexBuffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(leftQuadVertices), leftQuadVertices, GL_STATIC_DRAW);
 	glGenBuffers(1, &quadElementBuffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quadElementBuffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
@@ -172,7 +172,7 @@ void main()
 		deltaT = currFrameT - lastFrameT;
 		lastFrameT = currFrameT;
 
-		//std::cout << "FPS: " << 1/deltaT << std::endl;
+		std::cout << "FPS: " << 1/deltaT << std::endl;
 
 		vr::TrackedDevicePose_t trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 		vr::VRCompositor()->WaitGetPoses(trackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);			// Can be replaced by GetDeviceToAbsoluteTrackingPose(?)
@@ -201,7 +201,7 @@ void main()
 			glBindFramebuffer(GL_FRAMEBUFFER, FrameBufferID[eye]);
 			glViewport(0, 0, frameBufferWidth, frameBufferHeight);
 
-			glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			//glEnable(GL_DEPTH_TEST);
