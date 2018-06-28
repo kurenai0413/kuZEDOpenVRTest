@@ -119,21 +119,19 @@ void main()
 	glGenTextures(numEyes, contentTexture);
 
 	for (int eye = 0; eye < numEyes; eye++)
-	{
-		glBindFramebuffer(GL_FRAMEBUFFER, contentFrameBuffer[eye]);
-
+	{	
 		glBindTexture(GL_TEXTURE_2D, contentTexture[eye]);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ZEDImgWidth, ZEDImgHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ZEDImgWidth, ZEDImgHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+		
+		glBindFramebuffer(GL_FRAMEBUFFER, contentFrameBuffer[eye]);
 		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, contentTexture[eye], 0);
 	}
 
-#pragma region // Set texture quad //
+	#pragma region // Set texture quad //
 	static const GLfloat leftQuadVertices[] = {
 		0.709f,  0.334f, 1.0f, 0.0f,				// <= 這邊是比例，UV是相對於視窗的座標，不是絕對座標
 		0.709f, -0.334f, 1.0f, 1.0f,
@@ -157,19 +155,19 @@ void main()
 	glGenBuffers(2, quadElementBufferID);
 	SetQuadVertexArrayGL(quadVertexArrayID[0], quadVertexBufferID[0], quadElementBufferID[0], leftQuadVertices);
 	SetQuadVertexArrayGL(quadVertexArrayID[1], quadVertexBufferID[1], quadElementBufferID[1], rightQuadVertices);
-#pragma endregion
+	#pragma endregion
 
 	while (!glfwWindowShouldClose(window))
 	{
 		double currFrameT = glfwGetTime();
 		deltaT = currFrameT - lastFrameT;
 		lastFrameT = currFrameT;
-
 		std::cout << "FPS: " << 1/deltaT << std::endl;
 
 		vr::TrackedDevicePose_t trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 		vr::VRCompositor()->WaitGetPoses(trackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);			// Can be replaced by GetDeviceToAbsoluteTrackingPose(?)
 
+		// Acquire camera frame
 		ZEDCam.grab(rtParams);
 		ZEDCam.retrieveImage(camFrameZED[0], sl::VIEW_LEFT, sl::MEM_CPU);
 		ZEDCam.retrieveImage(camFrameZED[1], sl::VIEW_RIGHT, sl::MEM_CPU);
@@ -188,11 +186,12 @@ void main()
 			//cv::imshow("Test", camFrameCVBGR[0]);
 			DrawBGImage(camFrameCVBGR[eye], Tex2DShaderHandler);
 		}
+		#pragma endregion
 
 		glEnable(GL_DEPTH_TEST);
 		glDepthMask(GL_TRUE);
-		#pragma endregion
 
+		// Apply textures to OpenVR frame buffers
 		for (int eye = 0; eye < numEyes; ++eye)
 		{
 			glBindFramebuffer(GL_FRAMEBUFFER, FrameBufferID[eye]);
@@ -200,8 +199,6 @@ void main()
 
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-			//glEnable(GL_DEPTH_TEST);
 
 			Tex2DShaderHandler.Use();
 
