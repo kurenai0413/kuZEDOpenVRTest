@@ -12,6 +12,8 @@
 #include <OpenVR.h>
 
 #include "kuShaderHandler.h"
+#include "kuModelObject.h"
+#include "Matrices.h"
 
 #define numEyes			2
 
@@ -45,12 +47,21 @@ void				key_callback(GLFWwindow * window, int key, int scancode, int action, int
 
 void				SetQuadVertexArrayGL(GLuint vertexArrayID, GLuint vertexBufferID, GLuint elementBufferID, const GLfloat * vertexArrayPts);
 
+Matrix4				GetHMDMatrixPoseEye(vr::IVRSystem * hmd, vr::Hmd_Eye nEye);
+Matrix4				ConvertSteamVRMatrixToMatrix4(const vr::HmdMatrix34_t &matPose);
+Matrix4				GetHMDMatrixProjectionEye(vr::IVRSystem * hmd, vr::Hmd_Eye nEye);
+
 #pragma region // Camera parameters OpenGL //
 GLfloat						IntrinsicProjMatGL[2][16];
 GLfloat						ExtrinsicViewMat[2][16];
 #pragma endregion
 
 kuShaderHandler				Tex2DShaderHandler;
+kuShaderHandler				ModelShaderHandler;
+
+Matrix4						EyePoseMat[2];
+Matrix4						MVPMat[2];
+Matrix4						HMDProjectionMat[2];
 
 void main()
 {
@@ -61,6 +72,12 @@ void main()
 	const int windowWidth  = (frameBufferWidth * windowHeight) / frameBufferHeight;
 	GLFWwindow		*	window = kuOpenGLInit(windowWidth, windowHeight, "kuOpenGLVRTest", key_callback);
 	Tex2DShaderHandler.Load("BGImgVertexShader.vert", "BGImgFragmentShader.frag");
+	ModelShaderHandler.Load("ModelVertexShader.vert", "ModelFragmentShader.frag");
+
+	//std::cout << "Load face model......" << std::endl;
+	kuModelObject		FaceModel("kuFace_7d5wf_SG_mm_BottomCenter.stl");
+	//std::cout << "Load bone model......" << std::endl;
+	kuModelObject		BoneModel("kuBone_7d5wf_SG_mm_BottomCenter.stl");
 
 	GLuint	FrameBufferID[2];
 	GLuint	SceneTextureID[2];
@@ -81,6 +98,11 @@ void main()
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, SceneTextureID[eye], 0);
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	HMDProjectionMat[Left]  = GetHMDMatrixProjectionEye(hmd, vr::Eye_Left);
+	HMDProjectionMat[Right] = GetHMDMatrixProjectionEye(hmd, vr::Eye_Right);
+	EyePoseMat[Left]     = GetHMDMatrixPoseEye(hmd, vr::Eye_Left);
+	EyePoseMat[Right]    = GetHMDMatrixPoseEye(hmd, vr::Eye_Right);
 
 	#pragma region // Camera parameters OpenCV //
 	cv::Mat						IntrinsicMat[2];
@@ -157,22 +179,56 @@ void main()
 	SetQuadVertexArrayGL(quadVertexArrayID[1], quadVertexBufferID[1], quadElementBufferID[1], rightQuadVertices);
 	#pragma endregion
 
+	GLuint		CamPosLoc;
+	GLuint		ProjMatLoc, ViewMatLoc, ModelMatLoc, SceneMatrixLocation;
+	GLuint		ObjColorLoc;
+
+	GLuint		ImgModelMatLoc, ImgViewMatLoc, ImgProjMatLoc, ImgSceneMatrixLocation, TransCT2ModelLoc;
+	
+	glm::mat4	ProjMat, ModelMat, ViewMat;
+	glm::mat4	TransCT2Model;
+
+	SceneMatrixLocation = glGetUniformLocation(ModelShaderHandler.ShaderProgramID, "matrix");
+	ProjMatLoc  = glGetUniformLocation(ModelShaderHandler.ShaderProgramID, "ProjMat");
+	ViewMatLoc  = glGetUniformLocation(ModelShaderHandler.ShaderProgramID, "ViewMat");
+	ModelMatLoc = glGetUniformLocation(ModelShaderHandler.ShaderProgramID, "ModelMat");
+	CamPosLoc   = glGetUniformLocation(ModelShaderHandler.ShaderProgramID, "CamPos");
+	ObjColorLoc = glGetUniformLocation(ModelShaderHandler.ShaderProgramID, "ObjColor");
+
+	GLfloat FaceColorVec[4] = { 0.745f, 0.447f, 0.235f, 0.5f };
+	GLfloat BoneColorVec[4] = { 1.0f,   1.0f,   1.0f, 1.0f };
+
+	//glm::vec3 CameraPos = glm::vec3(0.0f, 0.0f, 200.0f);
+
+	//ModelMat = glm::translate(ModelMat, glm::vec3(0.0, 0.0, 300.0));
+	ModelMat = glm::scale(ModelMat, glm::vec3(0.001f, 0.001f, 0.001f));
+
+	glm::vec3 CameraPos = glm::vec3(0.0f, 0.0f, 0.0f);
+	glm::vec3 CameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+	glm::vec3 CameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
 	while (!glfwWindowShouldClose(window))
 	{
 		double currFrameT = glfwGetTime();
 		deltaT = currFrameT - lastFrameT;
 		lastFrameT = currFrameT;
-		std::cout << "FPS: " << 1/deltaT << std::endl;
+		//std::cout << "FPS: " << 1/deltaT << std::endl;
 
 		vr::TrackedDevicePose_t trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 		vr::VRCompositor()->WaitGetPoses(trackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);			// Can be replaced by GetDeviceToAbsoluteTrackingPose(?)
+
+		Matrix4 HMDPoseMat = ConvertSteamVRMatrixToMatrix4(trackedDevicePose[0].mDeviceToAbsoluteTracking);
+		HMDPoseMat.invert();
+
+		MVPMat[Left]  = HMDProjectionMat[Left] * EyePoseMat[Left]  * HMDPoseMat;
+		MVPMat[Right] = HMDProjectionMat[Right] * EyePoseMat[Right] * HMDPoseMat;
 
 		// Acquire camera frame
 		ZEDCam.grab(rtParams);
 		ZEDCam.retrieveImage(camFrameZED[0], sl::VIEW_LEFT, sl::MEM_CPU);
 		ZEDCam.retrieveImage(camFrameZED[1], sl::VIEW_RIGHT, sl::MEM_CPU);
 
-		#pragma region // Render camera frame to texture //
+		#pragma region // Render content to texture //
 		for (int eye = 0; eye < numEyes; eye++)
 		{
 			glBindFramebuffer(GL_FRAMEBUFFER, contentFrameBuffer[eye]);
@@ -181,17 +237,19 @@ void main()
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+			#pragma region // Render camera frame to texture frame buffer //
 			cv::cvtColor(camFrameCVRGBA[eye], camFrameCVBGR[eye], CV_RGBA2BGR);
 			cv::flip(camFrameCVBGR[eye], camFrameCVBGR[eye], 0);
 			//cv::imshow("Test", camFrameCVBGR[0]);
 			DrawBGImage(camFrameCVBGR[eye], Tex2DShaderHandler);
+			#pragma endregion
+
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		}
 		#pragma endregion
 
-		glEnable(GL_DEPTH_TEST);
-		glDepthMask(GL_TRUE);
-
-		// Apply textures to OpenVR frame buffers
+#pragma region // Apply textures to OpenVR frame buffers
 		for (int eye = 0; eye < numEyes; ++eye)
 		{
 			glBindFramebuffer(GL_FRAMEBUFFER, FrameBufferID[eye]);
@@ -207,7 +265,33 @@ void main()
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 			glBindVertexArray(0);
 			glBindTexture(GL_TEXTURE_2D, 0);
+
+			glEnable(GL_DEPTH_TEST);
+			glDepthMask(GL_TRUE);
+
+#pragma region // Render virtual model to texture frame buffer //
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+			ModelShaderHandler.Use();
+			glUniformMatrix4fv(SceneMatrixLocation, 1, GL_FALSE, MVPMat[eye].get());
+			glUniformMatrix4fv(ProjMatLoc, 1, GL_FALSE, glm::value_ptr(ProjMat));
+			glUniformMatrix4fv(ViewMatLoc, 1, GL_FALSE, glm::value_ptr(ViewMat));
+			glUniformMatrix4fv(ModelMatLoc, 1, GL_FALSE, glm::value_ptr(ModelMat));
+			glUniform3fv(CamPosLoc, 1, glm::value_ptr(CameraPos));
+
+			// Inner object first.
+			glUniform4fv(ObjColorLoc, 1, BoneColorVec);
+			BoneModel.Draw(ModelShaderHandler);
+
+			// Draw outside object latter
+			glUniform4fv(ObjColorLoc, 1, FaceColorVec);
+			FaceModel.Draw(ModelShaderHandler);
+
+			glDisable(GL_DEPTH_TEST);
+#pragma endregion
 		}
+#pragma endregion
 
 		vr::Texture_t LTexture = { reinterpret_cast<void*>(intptr_t(SceneTextureID[Left])), vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
 		vr::VRCompositor()->Submit(vr::EVREye(Left), &LTexture);
@@ -629,4 +713,65 @@ GLuint CreateTexturebyImage(cv::Mat Img)
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	return texture;
+}
+
+Matrix4 GetHMDMatrixPoseEye(vr::IVRSystem * hmd, vr::Hmd_Eye nEye)
+{
+	//if (!hmd)
+	//	return Matrix4();
+
+	vr::HmdMatrix34_t matEyeRight = hmd->GetEyeToHeadTransform(nEye);
+
+	/*if (nEye == vr::Eye_Left)
+	{
+		WriteEyePoseMatrixFile("LeftPoseMatrix.txt", matEyeRight);
+	}
+	else
+	{
+		WriteEyePoseMatrixFile("RightPoseMatrix.txt", matEyeRight);
+	}*/
+
+	Matrix4 matrixObj(
+		matEyeRight.m[0][0], matEyeRight.m[1][0], matEyeRight.m[2][0], 0.0,
+		matEyeRight.m[0][1], matEyeRight.m[1][1], matEyeRight.m[2][1], 0.0,
+		matEyeRight.m[0][2], matEyeRight.m[1][2], matEyeRight.m[2][2], 0.0,
+		matEyeRight.m[0][3], matEyeRight.m[1][3], matEyeRight.m[2][3], 1.0f
+	);
+
+	return matrixObj.invert();
+}
+
+Matrix4 ConvertSteamVRMatrixToMatrix4(const vr::HmdMatrix34_t &matPose)
+{
+	Matrix4 matrixObj(
+		matPose.m[0][0], matPose.m[1][0], matPose.m[2][0], 0.0,
+		matPose.m[0][1], matPose.m[1][1], matPose.m[2][1], 0.0,
+		matPose.m[0][2], matPose.m[1][2], matPose.m[2][2], 0.0,
+		matPose.m[0][3], matPose.m[1][3], matPose.m[2][3], 1.0f
+	);
+	return matrixObj;
+}
+
+Matrix4 GetHMDMatrixProjectionEye(vr::IVRSystem * hmd, vr::Hmd_Eye nEye)
+{
+	if (!hmd)
+		return Matrix4();
+
+	vr::HmdMatrix44_t mat = hmd->GetProjectionMatrix(nEye, nearClip, farClip);
+
+	/*if (nEye == vr::Eye_Left)
+	{
+		WriteProjectionMatrixFile("LeftProjectionMatrix.txt", mat);
+	}
+	else
+	{
+		WriteProjectionMatrixFile("RightProjectionMatrix.txt", mat);
+	}*/
+
+	return Matrix4(
+		mat.m[0][0], mat.m[1][0], mat.m[2][0], mat.m[3][0],
+		mat.m[0][1], mat.m[1][1], mat.m[2][1], mat.m[3][1],
+		mat.m[0][2], mat.m[1][2], mat.m[2][2], mat.m[3][2],
+		mat.m[0][3], mat.m[1][3], mat.m[2][3], mat.m[3][3]
+	);
 }

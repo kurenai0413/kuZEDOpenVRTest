@@ -245,3 +245,6 @@ ModelManifest.xml
 /OpenGL.props
 /OpenCV310_x64_Debug.props
 /kuZEDOpenVRTest/CB3DPts.txt
+/kuZEDOpenVRTest/kuFace_7d5wf_SG_mm_BottomCenter.stl
+/kuZEDOpenVRTest/kuBone_7d5wf_SG_mm_BottomCenter.stl
+/assimp_x64d.props

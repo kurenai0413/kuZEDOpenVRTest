@@ -67,6 +67,7 @@
     <Import Project="..\OpenGL.props" />
     <Import Project="..\OpenVR_x64d.props" />
     <Import Project="..\ZEDSDK.props" />
+    <Import Project="..\assimp_x64d.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -114,11 +115,24 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="kuMesh.cpp" />
+    <ClCompile Include="kuModelObject.cpp" />
     <ClCompile Include="kuShaderHandler.cpp" />
     <ClCompile Include="kuZEDOpenVRTest.cpp" />
+    <ClCompile Include="Matrices.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="kuMesh.h" />
+    <ClInclude Include="kuModelObject.h" />
     <ClInclude Include="kuShaderHandler.h" />
+    <ClInclude Include="Matrices.h" />
+    <ClInclude Include="Vectors.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="BGImgFragmentShader.frag" />
+    <None Include="BGImgVertexShader.vert" />
+    <None Include="ModelFragmentShader.frag" />
+    <None Include="ModelVertexShader.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
