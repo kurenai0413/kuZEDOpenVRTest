@@ -155,6 +155,7 @@ vector<kuTexture> kuModelObject::loadMaterialTextures(aiMaterial * mat, aiTextur
 	{
 		aiString str;
 		mat->GetTexture(type, i, &str);
+		
 		/*
 		GLboolean skip = false;
 		for (GLuint j = 0; j < TextureLoaded.size(); j++)

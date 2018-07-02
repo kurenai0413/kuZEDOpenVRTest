@@ -23,7 +23,7 @@
 #define ZEDImgWidth		1280
 #define ZEDImgHeight	720
 
-#define	nearClip		1.0
+#define	nearClip		0.1
 #define farClip			5000.0
 
 vr::IVRSystem	*	kuOpenVRInit(uint32_t &hmdWidth, uint32_t &hmdHeight);
@@ -75,9 +75,9 @@ void main()
 	ModelShaderHandler.Load("ModelVertexShader.vert", "ModelFragmentShader.frag");
 
 	//std::cout << "Load face model......" << std::endl;
-	kuModelObject		FaceModel("kuFace_7d5wf_SG_mm_BottomCenter.stl");
+	kuModelObject		FaceModel("kuFace_7d5wf_SG.obj");
 	//std::cout << "Load bone model......" << std::endl;
-	kuModelObject		BoneModel("kuBone_7d5wf_SG_mm_BottomCenter.stl");
+	kuModelObject		BoneModel("kuBone_7d5wf_SG.obj");
 
 	GLuint	FrameBufferID[2];
 	GLuint	SceneTextureID[2];
@@ -200,12 +200,15 @@ void main()
 
 	//glm::vec3 CameraPos = glm::vec3(0.0f, 0.0f, 200.0f);
 
-	//ModelMat = glm::translate(ModelMat, glm::vec3(0.0, 0.0, 300.0));
-	ModelMat = glm::scale(ModelMat, glm::vec3(0.001f, 0.001f, 0.001f));
-
 	glm::vec3 CameraPos = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 CameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 	glm::vec3 CameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+	//ModelMat = glm::translate(ModelMat, glm::vec3(0.0, 0.0, 300.0));
+	ModelMat = glm::scale(ModelMat, glm::vec3(0.001f, 0.001f, 0.001f));
+	ModelMat = glm::rotate(ModelMat, (GLfloat)3.1415926 * -90.0f / 180.0f,
+						   glm::vec3(1.0f, 0.0f, 0.0f)); // mat, degree, axis. (use radians)
+	ModelMat = glm::translate(ModelMat, glm::vec3(0.0f, 0.0f, 200.0f));
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -218,6 +221,7 @@ void main()
 		vr::VRCompositor()->WaitGetPoses(trackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);			// Can be replaced by GetDeviceToAbsoluteTrackingPose(?)
 
 		Matrix4 HMDPoseMat = ConvertSteamVRMatrixToMatrix4(trackedDevicePose[0].mDeviceToAbsoluteTracking);
+		CameraPos = glm::vec3(HMDPoseMat.m[12], HMDPoseMat.m[13], HMDPoseMat.m[14]);
 		HMDPoseMat.invert();
 
 		MVPMat[Left]  = HMDProjectionMat[Left] * EyePoseMat[Left]  * HMDPoseMat;
@@ -243,9 +247,6 @@ void main()
 			//cv::imshow("Test", camFrameCVBGR[0]);
 			DrawBGImage(camFrameCVBGR[eye], Tex2DShaderHandler);
 			#pragma endregion
-
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		}
 		#pragma endregion
 
@@ -286,7 +287,7 @@ void main()
 
 			// Draw outside object latter
 			glUniform4fv(ObjColorLoc, 1, FaceColorVec);
-			FaceModel.Draw(ModelShaderHandler);
+			//FaceModel.Draw(ModelShaderHandler);
 
 			glDisable(GL_DEPTH_TEST);
 #pragma endregion
