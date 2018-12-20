@@ -26,7 +26,7 @@ void kuMesh::Draw(kuShaderHandler shader)
 			ss << specularNr++; // Transfer GLuint to stream
 		number = ss.str();
 
-		glUniform1f(glGetUniformLocation(shader.ShaderProgramID, ( name + number).c_str()), i);
+		glUniform1f(glGetUniformLocation(shader.GetShaderProgramID(), ( name + number).c_str()), i);
 		glBindTexture(GL_TEXTURE_2D, this->textures[i].TextureID);	
 	}
 	glActiveTexture(GL_TEXTURE0);

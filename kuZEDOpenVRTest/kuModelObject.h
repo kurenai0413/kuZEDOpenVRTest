@@ -22,15 +22,25 @@ class kuModelObject
 public:
 
 	kuModelObject(char * filename);
+	kuModelObject(char * filename, kuShaderHandler shader);
 	kuModelObject();
 	~kuModelObject();
 
 	void Draw(kuShaderHandler shader);
+	void Draw();
+	void Draw(kuShaderHandler shader, glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular);
+	void Draw(glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular);
+	void Draw(kuShaderHandler shader, kuMaterial material);
+	void Draw(kuMaterial material);
+	
+	void SetMaterial(kuMaterial material);
 
 private:
-	vector<kuMesh>		ObjectMeshes;
-	vector<kuMaterial>	ObjectMaterials;
-	vector<kuTexture>	TextureLoaded;
+	kuShaderHandler		m_Shader;
+
+	vector<kuMesh>		m_ObjectMeshes;
+	vector<kuMaterial>	m_ObjectMaterials;
+	vector<kuTexture>	m_ObjectTexture;
 
 	void LoadModel(char * filename);
 	void ProcessNode(aiNode * node, const aiScene * scene);

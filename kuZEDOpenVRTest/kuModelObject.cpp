@@ -18,16 +18,43 @@ kuModelObject::~kuModelObject()
 
 void kuModelObject::Draw(kuShaderHandler shader)
 {
-	glUniform3f(glGetUniformLocation(shader.ShaderProgramID, "material.ambient"),
-				ObjectMaterials[0].Ambient.r, ObjectMaterials[0].Ambient.g, ObjectMaterials[0].Ambient.b);
-	glUniform3f(glGetUniformLocation(shader.ShaderProgramID, "material.diffuse"),
-				ObjectMaterials[0].Diffuse.r, ObjectMaterials[0].Diffuse.g, ObjectMaterials[0].Diffuse.b);
-	glUniform3f(glGetUniformLocation(shader.ShaderProgramID, "material.specular"),
-				ObjectMaterials[0].Specular.r, ObjectMaterials[0].Specular.g, ObjectMaterials[0].Specular.b);
+	glUniform3f(glGetUniformLocation(shader.GetShaderProgramID(), "material.ambient"),
+				m_ObjectMaterials[0].Ambient.r, m_ObjectMaterials[0].Ambient.g, m_ObjectMaterials[0].Ambient.b);
+	glUniform3f(glGetUniformLocation(shader.GetShaderProgramID(), "material.diffuse"),
+				m_ObjectMaterials[0].Diffuse.r, m_ObjectMaterials[0].Diffuse.g, m_ObjectMaterials[0].Diffuse.b);
+	glUniform3f(glGetUniformLocation(shader.GetShaderProgramID(), "material.specular"),
+				m_ObjectMaterials[0].Specular.r, m_ObjectMaterials[0].Specular.g, m_ObjectMaterials[0].Specular.b);
 
-	for (int i = 0; i < ObjectMeshes.size(); i++)
+	for (int i = 0; i < m_ObjectMeshes.size(); i++)
 	{
-		this->ObjectMeshes[i].Draw(shader);
+		this->m_ObjectMeshes[i].Draw(shader);
+	}
+}
+
+void kuModelObject::Draw(kuShaderHandler shader, glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular)
+{
+	glUniform3f(glGetUniformLocation(shader.GetShaderProgramID(), "material.ambient"), ambient.r, ambient.g, ambient.b);
+	glUniform3f(glGetUniformLocation(shader.GetShaderProgramID(), "material.diffuse"), diffuse.r, diffuse.g, diffuse.b);
+	glUniform3f(glGetUniformLocation(shader.GetShaderProgramID(), "material.specular"), specular.r, specular.g, specular.b);
+
+	for (int i = 0; i < m_ObjectMeshes.size(); i++)
+	{
+		this->m_ObjectMeshes[i].Draw(shader);
+	}
+}
+
+void kuModelObject::Draw(kuShaderHandler shader, kuMaterial material)
+{
+	glUniform3f(glGetUniformLocation(shader.GetShaderProgramID(), "material.ambient"),
+				material.Ambient.r, material.Ambient.g, material.Ambient.b);
+	glUniform3f(glGetUniformLocation(shader.GetShaderProgramID(), "material.diffuse"),
+				material.Diffuse.r, material.Diffuse.g, material.Diffuse.b);
+	glUniform3f(glGetUniformLocation(shader.GetShaderProgramID(), "material.specular"),
+				material.Specular.r, material.Specular.g, material.Specular.b);
+
+	for (int i = 0; i < m_ObjectMeshes.size(); i++)
+	{
+		this->m_ObjectMeshes[i].Draw(shader);
 	}
 }
 
@@ -37,7 +64,8 @@ void kuModelObject::LoadModel(char * filename)
 
 	cout << "Loading model....." << filename << endl;
 
-	const aiScene * scene = importer.ReadFile(filename, aiProcess_Triangulate | aiProcess_FlipUVs | 
+	const aiScene * scene = importer.ReadFile(filename, aiProcess_Triangulate | 
+														aiProcess_FlipUVs | 
 														aiProcess_GenNormals );
 	// aiProcessPreset_TargetRealtime_MaxQuality 可以試試看
 	if (!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
@@ -47,11 +75,11 @@ void kuModelObject::LoadModel(char * filename)
 	}
 
 	bool hasAnimation = scene->HasAnimations();
-	bool hasCamera = scene->HasCameras();
-	bool hasLight = scene->HasLights();
-	bool hasMaterial = scene->HasMaterials();
-	bool hasMeshes = scene->HasMeshes();
-	bool hasTextures = scene->HasTextures();
+	bool hasCamera	  = scene->HasCameras();
+	bool hasLight	  = scene->HasLights();
+	bool hasMaterial  = scene->HasMaterials();
+	bool hasMeshes	  = scene->HasMeshes();
+	bool hasTextures  = scene->HasTextures();
 
 	// Process ASSIMP's root node recursively
 	this->ProcessNode(scene->mRootNode, scene);
@@ -68,7 +96,7 @@ void kuModelObject::ProcessNode(aiNode * node, const aiScene * scene)
 	{
 		aiMesh * mesh = scene->mMeshes[node->mMeshes[i]];			// 去從scene的mMeshes裡面根據node裡存的index要mesh出來
 
-		this->ObjectMeshes.push_back(this->processMesh(mesh, scene));
+		this->m_ObjectMeshes.push_back(this->processMesh(mesh, scene));
 	}
 
 	for (int i = 0; i < node->mNumChildren; i++)
@@ -140,7 +168,7 @@ kuMesh kuModelObject::processMesh(aiMesh * mesh, const aiScene * scene)
 		materialTemp.Diffuse  = glm::vec3(diffuse.r, diffuse.g, diffuse.b);
 		materialTemp.Specular = glm::vec3(specular.r, specular.g, specular.b);
 
-		ObjectMaterials.push_back(materialTemp);
+		m_ObjectMaterials.push_back(materialTemp);
 	}
 
 	return kuMesh(vertices, indices, textures);
@@ -155,7 +183,6 @@ vector<kuTexture> kuModelObject::loadMaterialTextures(aiMaterial * mat, aiTextur
 	{
 		aiString str;
 		mat->GetTexture(type, i, &str);
-		
 		/*
 		GLboolean skip = false;
 		for (GLuint j = 0; j < TextureLoaded.size(); j++)

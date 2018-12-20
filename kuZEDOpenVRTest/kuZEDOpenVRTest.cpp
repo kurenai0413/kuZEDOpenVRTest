@@ -1,15 +1,11 @@
-#include <opencv2/opencv.hpp>
-
-// OpenGL includes
 #include <GLEW/glew.h>
 #include <GLFW/glfw3.h>
 #include <GLM/glm.hpp>
 #include <GLM/gtc/matrix_transform.hpp>
 #include <GLM/gtc/type_ptr.hpp>
-
-#include <sl_zed/Camera.hpp>
-
 #include <OpenVR.h>
+#include <opencv2/opencv.hpp>
+#include <sl_zed/Camera.hpp>
 
 #include "kuShaderHandler.h"
 #include "kuModelObject.h"
@@ -68,26 +64,26 @@ void main()
 	uint32_t frameBufferWidth, frameBufferHeight;
 
 	vr::IVRSystem	*	hmd	   = kuOpenVRInit(frameBufferWidth, frameBufferHeight);
-	const int windowHeight = 720;
-	const int windowWidth  = (frameBufferWidth * windowHeight) / frameBufferHeight;
+	const int windowHeight	   = 720;
+	const int windowWidth	   = (frameBufferWidth * windowHeight) / frameBufferHeight;
 	GLFWwindow		*	window = kuOpenGLInit(windowWidth, windowHeight, "kuOpenGLVRTest", key_callback);
 	Tex2DShaderHandler.Load("BGImgVertexShader.vert", "BGImgFragmentShader.frag");
 	ModelShaderHandler.Load("ModelVertexShader.vert", "ModelFragmentShader.frag");
 
 	//std::cout << "Load face model......" << std::endl;
-	kuModelObject		FaceModel("kuFace_7d5wf_SG.obj");
+	kuModelObject		FaceModel("kuFace_7d5wf_SG_Center.stl");
 	//std::cout << "Load bone model......" << std::endl;
-	kuModelObject		BoneModel("kuBone_7d5wf_SG.obj");
+	kuModelObject		BoneModel("kuBone_7d5wf_SG_Center.stl");
 
 	GLuint	FrameBufferID[2];
 	GLuint	SceneTextureID[2];
 
-	glGenFramebuffers(numEyes, FrameBufferID);							// Create frame buffers for each eyes.
-	glGenTextures(numEyes, SceneTextureID);								// Prepare texture memory space and give it an index. In this case, glGenTextures creates two textures for colorRenderTarget
+	glGenFramebuffers(numEyes, FrameBufferID);									// Create frame buffers for each eyes.
+	glGenTextures(numEyes, SceneTextureID);										// Prepare texture memory space and give it an index. In this case, glGenTextures creates two textures for colorRenderTarget
 
 	for (int eye = 0; eye < numEyes; eye++)
 	{
-		glBindTexture(GL_TEXTURE_2D, SceneTextureID[eye]);				//Bind which texture if active for processing
+		glBindTexture(GL_TEXTURE_2D, SceneTextureID[eye]);						//Bind which texture if active for processing
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -101,8 +97,8 @@ void main()
 
 	HMDProjectionMat[Left]  = GetHMDMatrixProjectionEye(hmd, vr::Eye_Left);
 	HMDProjectionMat[Right] = GetHMDMatrixProjectionEye(hmd, vr::Eye_Right);
-	EyePoseMat[Left]     = GetHMDMatrixPoseEye(hmd, vr::Eye_Left);
-	EyePoseMat[Right]    = GetHMDMatrixPoseEye(hmd, vr::Eye_Right);
+	EyePoseMat[Left]        = GetHMDMatrixPoseEye(hmd, vr::Eye_Left);
+	EyePoseMat[Right]       = GetHMDMatrixPoseEye(hmd, vr::Eye_Right);
 
 	#pragma region // Camera parameters OpenCV //
 	cv::Mat						IntrinsicMat[2];
@@ -143,10 +139,10 @@ void main()
 	for (int eye = 0; eye < numEyes; eye++)
 	{	
 		glBindTexture(GL_TEXTURE_2D, contentTexture[eye]);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ZEDImgWidth, ZEDImgHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
 		
 		glBindFramebuffer(GL_FRAMEBUFFER, contentFrameBuffer[eye]);
@@ -188,27 +184,25 @@ void main()
 	glm::mat4	ProjMat, ModelMat, ViewMat;
 	glm::mat4	TransCT2Model;
 
-	SceneMatrixLocation = glGetUniformLocation(ModelShaderHandler.ShaderProgramID, "matrix");
-	ProjMatLoc  = glGetUniformLocation(ModelShaderHandler.ShaderProgramID, "ProjMat");
-	ViewMatLoc  = glGetUniformLocation(ModelShaderHandler.ShaderProgramID, "ViewMat");
-	ModelMatLoc = glGetUniformLocation(ModelShaderHandler.ShaderProgramID, "ModelMat");
-	CamPosLoc   = glGetUniformLocation(ModelShaderHandler.ShaderProgramID, "CamPos");
-	ObjColorLoc = glGetUniformLocation(ModelShaderHandler.ShaderProgramID, "ObjColor");
+	SceneMatrixLocation = glGetUniformLocation(ModelShaderHandler.GetShaderProgramID(), "matrix");
+	ProjMatLoc			= glGetUniformLocation(ModelShaderHandler.GetShaderProgramID(), "ProjMat");
+	ViewMatLoc			= glGetUniformLocation(ModelShaderHandler.GetShaderProgramID(), "ViewMat");
+	ModelMatLoc			= glGetUniformLocation(ModelShaderHandler.GetShaderProgramID(), "ModelMat");
+	CamPosLoc			= glGetUniformLocation(ModelShaderHandler.GetShaderProgramID(), "CamPos");
+	ObjColorLoc			= glGetUniformLocation(ModelShaderHandler.GetShaderProgramID(), "ObjColor");
 
 	GLfloat FaceColorVec[4] = { 0.745f, 0.447f, 0.235f, 0.5f };
-	GLfloat BoneColorVec[4] = { 1.0f,   1.0f,   1.0f, 1.0f };
+	GLfloat BoneColorVec[4] = {   1.0f,   1.0f,	  1.0f, 1.0f };
 
-	//glm::vec3 CameraPos = glm::vec3(0.0f, 0.0f, 200.0f);
-
-	glm::vec3 CameraPos = glm::vec3(0.0f, 0.0f, 0.0f);
+	glm::vec3 CameraPos   = glm::vec3(0.0f, 0.0f,  0.0f);
 	glm::vec3 CameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-	glm::vec3 CameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+	glm::vec3 CameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
 
 	//ModelMat = glm::translate(ModelMat, glm::vec3(0.0, 0.0, 300.0));
 	ModelMat = glm::scale(ModelMat, glm::vec3(0.001f, 0.001f, 0.001f));
-	ModelMat = glm::rotate(ModelMat, (GLfloat)3.1415926 * -90.0f / 180.0f,
+	ModelMat = glm::rotate(ModelMat, (GLfloat)3.1415926f * -90.0f / 180.0f,
 						   glm::vec3(1.0f, 0.0f, 0.0f)); // mat, degree, axis. (use radians)
-	ModelMat = glm::translate(ModelMat, glm::vec3(0.0f, 0.0f, 200.0f));
+	//ModelMat = glm::translate(ModelMat, glm::vec3(0.0f, 0.0f, 100.0f));
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -268,7 +262,7 @@ void main()
 			glBindTexture(GL_TEXTURE_2D, 0);
 
 			glEnable(GL_DEPTH_TEST);
-			glDepthMask(GL_TRUE);
+			//glDepthMask(GL_TRUE);
 
 #pragma region // Render virtual model to texture frame buffer //
 			glEnable(GL_BLEND);
@@ -283,13 +277,21 @@ void main()
 
 			// Inner object first.
 			glUniform4fv(ObjColorLoc, 1, BoneColorVec);
-			BoneModel.Draw(ModelShaderHandler);
-
+			BoneModel.Draw(ModelShaderHandler, glm::vec3(0.3f, 0.3f, 0.3f),
+											   glm::vec3(0.5f, 0.5f, 0.5f),
+											   glm::vec3(0.3f, 0.3f, 0.3f));
+			//BoneModel.Draw(ModelShaderHandler);
+			
 			// Draw outside object latter
-			glUniform4fv(ObjColorLoc, 1, FaceColorVec);
+			/*glUniform4fv(ObjColorLoc, 1, FaceColorVec);
+			FaceModel.Draw(ModelShaderHandler, glm::vec3(0.3f, 0.3f, 0.3f),
+											   glm::vec3(0.5f, 0.5f, 0.5f),
+											   glm::vec3(0.3f, 0.3f, 0.3f));*/
 			//FaceModel.Draw(ModelShaderHandler);
 
 			glDisable(GL_DEPTH_TEST);
+
+			glUseProgram(0);
 #pragma endregion
 		}
 #pragma endregion
@@ -319,8 +321,8 @@ void main()
 
 vr::IVRSystem * kuOpenVRInit(uint32_t & hmdWidth, uint32_t & hmdHeight)
 {
-	vr::EVRInitError eError = vr::VRInitError_None;
-	vr::IVRSystem* hmd = vr::VR_Init(&eError, vr::VRApplication_Scene);
+	vr::EVRInitError	eError = vr::VRInitError_None;
+	vr::IVRSystem	*	hmd	   = vr::VR_Init(&eError, vr::VRApplication_Scene);
 
 	if (eError != vr::VRInitError_None) {
 		fprintf(stderr, "OpenVR Initialization Error: %s\n", vr::VR_GetVRInitErrorAsEnglishDescription(eError));
@@ -337,7 +339,7 @@ vr::IVRSystem * kuOpenVRInit(uint32_t & hmdWidth, uint32_t & hmdHeight)
 	fprintf(stderr, "HMD: %s '%s' #%s (%d x %d @ %g Hz)\n", driver.c_str(), model.c_str(), serial.c_str(), hmdWidth, hmdHeight, freq);
 
 	// Initialize the compositor
-	vr::IVRCompositor* compositor = vr::VRCompositor();
+	vr::IVRCompositor * compositor = vr::VRCompositor();
 	if (!compositor) {
 		fprintf(stderr, "OpenVR Compositor initialization failed. See log file for details\n");
 		vr::VR_Shutdown();

@@ -10,19 +10,25 @@
 
 class kuShaderHandler
 {
+	enum ShaderType { VERTEX, FRAGMENT, TESSELLATION, GEOMETRY };
+
 public:
 	kuShaderHandler();
 	kuShaderHandler(const char * VSPathName, const char * FSPathName);		// Vertex Shader, Fragment Shader
 	~kuShaderHandler();
 
-	GLuint	ShaderProgramID;
 
-	void	Load(const char * VSPathName, const char * FSPathName);
-	void	Use();
+	bool	Load(const char * VSPathName, const char * FSPathName);
+	bool	Use();
+	GLuint	GetShaderProgramID();
 
 private:
 
-	bool	isShaderCreated;
+	GLuint	m_ShaderProgramID;
+	bool	m_fShaderCreated;
+
+	bool	CreateShader(GLuint &shaderID, ShaderType shaderType, const char * shaderPath);
+	bool	CompileShader(GLuint shaderID, const GLchar * shaderCode);
 };
 
 #endif
